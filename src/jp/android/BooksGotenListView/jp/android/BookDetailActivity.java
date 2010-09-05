@@ -4,9 +4,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import jp.android.BooksGotenListView.R;
+
+import org.apache.http.NameValuePair;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
@@ -75,6 +85,13 @@ public class BookDetailActivity extends Activity implements OnClickListener {
 		try {
 			String lendUrlStr = "http://booksgoten.appspot.com/catalog/lend/" + book.key; 
 			URL lendUrl = new URL(lendUrlStr);
+			HttpClient httpclient = new DefaultHttpClient();
+			HttpPost httppost = new HttpPost(lendUrlStr);
+			List<NameValuePair> nameValuePair = new ArrayList<NameValuePair>(1);
+			nameValuePair.add(new BasicNameValuePair("lending", Boolean.toString(!book.lending)));
+			httppost.setEntity(new UrlEncodedFormEntity(nameValuePair));
+			httpclient.execute(httppost);
+			
 			lendUrl.getContent();
 		} catch (MalformedURLException e) {
 			// TODO 自動生成された catch ブロック
