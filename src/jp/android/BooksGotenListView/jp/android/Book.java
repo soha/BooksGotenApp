@@ -23,6 +23,7 @@ public class Book implements Serializable {
 	public Date publication_date;
 	public int price;
 	public String image_url;
+	public String detail_page_shop_url;
 	
 	public String memo;
 	/**

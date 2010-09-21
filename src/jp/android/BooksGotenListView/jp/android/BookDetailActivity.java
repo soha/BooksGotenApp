@@ -36,6 +36,7 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.net.ParseException;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -68,6 +69,18 @@ public class BookDetailActivity extends Activity implements OnClickListener {
 		bookDetailText = (TextView) findViewById(R.id.BookDetailView);
 		bookDetailImage = (ImageView) findViewById(R.id.BookImageDetailView);
 		lendingButton = (Button) findViewById(R.id.LendingButton);
+		
+		bookDetailImage.setOnClickListener(new View.OnClickListener() {
+			
+			public void onClick(View v) {
+				String url = book.detail_page_shop_url;
+				if(!"".equals(url) && !"None".equals(url)) {
+					Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+					startActivity(i);
+				}
+				
+			}
+		});
 
 		lendingButton.setOnClickListener(this);
 
@@ -102,13 +115,15 @@ public class BookDetailActivity extends Activity implements OnClickListener {
 
 	public void onClick(View v) {
 
-		String lendUrlStr = "http://booksgoten.appspot.com/catalog/lendbydroid/"
-				+ book.key;
-
-		// 画像の取得・表示
-		UpdateLendingStatus task = new UpdateLendingStatus(this);
-		task.execute(lendUrlStr);
-
+		if(v == lendingButton) {
+			String lendUrlStr = "http://booksgoten.appspot.com/catalog/lendbydroid/"
+					+ book.key;
+	
+			// 画像の取得・表示
+			UpdateLendingStatus task = new UpdateLendingStatus(this);
+			task.execute(lendUrlStr);
+			
+		}
 	}
 
 	public class UpdateLendingStatus extends

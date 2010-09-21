@@ -180,6 +180,7 @@ public class BooksGotenListViewActivity extends Activity {
 				Date publication_date = null;
 				int price = 0;
 				boolean lending = false;
+				String detail_page_shop_url = "";
 				NodeList bookList = doc.getElementsByTagName("book");
 				for(int i=0; i<bookList.getLength(); i++) {
 					Node bookNode = bookList.item(i);
@@ -211,6 +212,8 @@ public class BooksGotenListViewActivity extends Activity {
 							lending = Boolean.parseBoolean(lending_str);
 						}else if("key".equals(nodeName)) {
 							key = prop.getFirstChild().getNodeValue();;
+						}else if("detail_page_shop_url".equals(nodeName)) {
+							detail_page_shop_url = prop.getFirstChild().getNodeValue();;
 						}
 					}
 					Book b = new Book();
@@ -222,6 +225,7 @@ public class BooksGotenListViewActivity extends Activity {
 					b.publication_date = publication_date;
 					b.price = price;
 					b.lending = lending;
+					b.detail_page_shop_url = detail_page_shop_url;
 					books.add(b);
 				}
 			} catch (MalformedURLException e) {
