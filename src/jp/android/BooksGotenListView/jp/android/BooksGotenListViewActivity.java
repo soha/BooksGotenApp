@@ -31,6 +31,8 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -46,6 +48,9 @@ import android.widget.Toast;
  *
  */
 public class BooksGotenListViewActivity extends Activity {
+	
+	ListView booksListView;
+	
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -53,7 +58,7 @@ public class BooksGotenListViewActivity extends Activity {
 		setContentView(R.layout.main);
 		
 
-		ListView booksListView = (ListView) findViewById(R.id.BooksListView);
+		booksListView = (ListView) findViewById(R.id.BooksListView);
 		
 		booksListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -76,6 +81,40 @@ public class BooksGotenListViewActivity extends Activity {
 	}
 
 
+	/**
+	 * オプションメニュー作成
+	 */
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		boolean ret = super.onCreateOptionsMenu(menu);
+		menu.add(0, Menu.FIRST, Menu.NONE, "reload");
+
+		return ret;
+	}
+	
+	/**
+	 * オプションメニュー押下時
+	 */
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		boolean res = super.onOptionsItemSelected(item);
+
+		BooksRequestTask task = new BooksRequestTask(this, this.booksListView);
+		task.execute(); 
+
+		return res;
+	}
+	
+	/**
+	 * 画面復帰時に呼び出される
+	 */
+	@Override
+	public void onResume() {
+		super.onResume();
+		BooksRequestTask task = new BooksRequestTask(this, this.booksListView);
+		task.execute(); 
+	}
+	
 	public class BooksRequestTask extends AsyncTask<String, Integer, List<Book>> {
 
 		ListView booksListView;
