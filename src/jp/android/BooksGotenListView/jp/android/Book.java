@@ -3,6 +3,11 @@ package jp.android.BooksGotenListView.jp.android;
 import java.io.Serializable;
 import java.util.Date;
 
+/**
+ * 書籍１件のデータ
+ * @author you
+ *
+ */
 public class Book implements Serializable {
 
 	private static final long serialVersionUID = 1L;

@@ -6,7 +6,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -35,8 +34,10 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -47,9 +48,13 @@ import android.widget.Toast;
  * @author you
  *
  */
-public class BooksGotenListViewActivity extends Activity {
+public class BooksGotenListViewActivity extends Activity implements OnClickListener {
 	
+	static final int ITEMS_PER_PAGE = 3;
 	ListView booksListView;
+	Button nextButton;
+	int offset = 0;
+	BooksAdaptor adaptor;
 	
 	/** Called when the activity is first created. */
 	@Override
@@ -57,7 +62,9 @@ public class BooksGotenListViewActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		
-
+		nextButton = (Button) findViewById(R.id.NextButton);
+		nextButton.setOnClickListener(this);
+		
 		booksListView = (ListView) findViewById(R.id.BooksListView);
 		
 		booksListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -115,8 +122,9 @@ public class BooksGotenListViewActivity extends Activity {
 		task.execute(); 
 	}
 	
-	public class BooksRequestTask extends AsyncTask<String, Integer, List<Book>> {
+	public class BooksRequestTask extends AsyncTask<String, Integer, BooksData> {
 
+		int offset = 0;
 		ListView booksListView;
 		Activity activity;
 		ProgressDialog progressDialog;
@@ -140,33 +148,49 @@ public class BooksGotenListViewActivity extends Activity {
 		}
 
 		@Override
-		protected List<Book> doInBackground(String... params) {
-			return getBooksData();
+		protected BooksData doInBackground(String... params) {
+			offset = 0;
+			try{
+				if(params.length > 0){
+					offset = Integer.parseInt(params[0]);
+				}
+			}catch(NumberFormatException e){}
+			return getBooksData(offset);
 		}
 		
 		@Override
-		protected void onPostExecute(List<Book> books) {
+		protected void onPostExecute(BooksData booksData) {
 			progressDialog.dismiss(); //プログレスバー消す
 			Toast.makeText(activity, "書籍データ取得完了", 1).show();
 			
-			BooksAdaptor adapter = new BooksAdaptor(activity, R.layout.book_row, books);
-			// アイテムを追加します
-
-			// アダプターを設定します
-			booksListView.setAdapter(adapter);
 			
+			if(offset > 0 && adaptor != null){
+				//既にアダプター設定済み、後ろに追加する
+				adaptor.addItems(booksData.books);
+			}else{
+				// アダプターを設定します
+				adaptor = new BooksAdaptor(activity, R.layout.book_row, booksData.books);
+			}
+			booksListView.setAdapter(adaptor);
+			
+			int offset_count = booksData.offset_count;
+			int total_count = booksData.total_count;
+			if(offset_count + ITEMS_PER_PAGE >= total_count) {
+				nextButton.setEnabled(false);
+			}
 		}
 		
 		/**
 		 * サーバから書籍データを取得する
+		 * @param offset 取得ページのoffset
 		 * @return
 		 */
-		private List<Book> getBooksData() {
+		private BooksData getBooksData(int offset) {
 			
-			List<Book> books = new ArrayList<Book>();
+			BooksData booksData = new BooksData();
 			
 			try {
-				URL booksUrl = new URL("http://booksgoten.appspot.com/catalog/list.xml");
+				URL booksUrl = new URL("http://booksgoten.appspot.com/catalog/list/" + offset);
 				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 				DocumentBuilder db = dbf.newDocumentBuilder();
 				Document doc = db.parse(booksUrl.openStream());
@@ -181,52 +205,63 @@ public class BooksGotenListViewActivity extends Activity {
 				int price = 0;
 				boolean lending = false;
 				String detail_page_shop_url = "";
+				
+				Node tNode = doc.getElementById("offset_count");
+				if(tNode != null) {
+					booksData.offset_count = Integer.parseInt(tNode.getFirstChild().getNodeValue());
+				}
+				tNode = doc.getElementById("total_count");
+				if(tNode != null) {
+					booksData.total_count = Integer.parseInt(tNode.getFirstChild().getNodeValue());
+				}
+
 				NodeList bookList = doc.getElementsByTagName("book");
 				for(int i=0; i<bookList.getLength(); i++) {
 					Node bookNode = bookList.item(i);
-					NodeList bookProps = bookNode.getChildNodes();
-					for(int j=0; j<bookProps.getLength(); j++) {
-						Node prop = bookProps.item(j);
-						String nodeName = prop.getNodeName();
-						if("title".equals(nodeName)){
-							title = prop.getFirstChild().getNodeValue();
-						}else if("image_url".equals(nodeName)) {
-							image_url = prop.getFirstChild().getNodeValue();
-						}else if("author".equals(nodeName)) {
-							author = prop.getFirstChild().getNodeValue();
-						}else if("publisher".equals(nodeName)) {
-							publisher = prop.getFirstChild().getNodeValue();
-						}else if("publication_date".equals(nodeName)) {
-							String publication_date_str = prop.getFirstChild().getNodeValue();
-							try {
-								publication_date = sdf.parse(publication_date_str);
-							} catch (ParseException e) {
-								// 未入力や日付の書式が異なる場合はなしとする
-								publication_date = null;
+					String nodeName = bookNode.getNodeName();
+						NodeList bookProps = bookNode.getChildNodes();
+						for(int j=0; j<bookProps.getLength(); j++) {
+							Node prop = bookProps.item(j);
+							nodeName = prop.getNodeName();
+							if("title".equals(nodeName)){
+								title = prop.getFirstChild().getNodeValue();
+							}else if("image_url".equals(nodeName)) {
+								image_url = prop.getFirstChild().getNodeValue();
+							}else if("author".equals(nodeName)) {
+								author = prop.getFirstChild().getNodeValue();
+							}else if("publisher".equals(nodeName)) {
+								publisher = prop.getFirstChild().getNodeValue();
+							}else if("publication_date".equals(nodeName)) {
+								String publication_date_str = prop.getFirstChild().getNodeValue();
+								try {
+									publication_date = sdf.parse(publication_date_str);
+								} catch (ParseException e) {
+									// 未入力や日付の書式が異なる場合はなしとする
+									publication_date = null;
+								}
+							}else if("price".equals(nodeName)) {
+								String price_str = prop.getFirstChild().getNodeValue();
+								price = Integer.parseInt(price_str);
+							}else if("lending".equals(nodeName)) {
+								String lending_str = prop.getFirstChild().getNodeValue();
+								lending = Boolean.parseBoolean(lending_str);
+							}else if("key".equals(nodeName)) {
+								key = prop.getFirstChild().getNodeValue();;
+							}else if("detail_page_shop_url".equals(nodeName)) {
+								detail_page_shop_url = prop.getFirstChild().getNodeValue();;
 							}
-						}else if("price".equals(nodeName)) {
-							String price_str = prop.getFirstChild().getNodeValue();
-							price = Integer.parseInt(price_str);
-						}else if("lending".equals(nodeName)) {
-							String lending_str = prop.getFirstChild().getNodeValue();
-							lending = Boolean.parseBoolean(lending_str);
-						}else if("key".equals(nodeName)) {
-							key = prop.getFirstChild().getNodeValue();;
-						}else if("detail_page_shop_url".equals(nodeName)) {
-							detail_page_shop_url = prop.getFirstChild().getNodeValue();;
 						}
-					}
-					Book b = new Book();
-					b.key = key;
-					b.title = title;
-					b.image_url = image_url;
-					b.author = author;
-					b.publisher = publisher;
-					b.publication_date = publication_date;
-					b.price = price;
-					b.lending = lending;
-					b.detail_page_shop_url = detail_page_shop_url;
-					books.add(b);
+						Book b = new Book();
+						b.key = key;
+						b.title = title;
+						b.image_url = image_url;
+						b.author = author;
+						b.publisher = publisher;
+						b.publication_date = publication_date;
+						b.price = price;
+						b.lending = lending;
+						b.detail_page_shop_url = detail_page_shop_url;
+						booksData.books.add(b);
 				}
 			} catch (MalformedURLException e) {
 				// TODO 自動生成された catch ブロック
@@ -241,7 +276,7 @@ public class BooksGotenListViewActivity extends Activity {
 				// TODO 自動生成された catch ブロック
 				e.printStackTrace();
 			}
-			return books;
+			return booksData;
 		}
 	}
 	
@@ -265,6 +300,10 @@ public class BooksGotenListViewActivity extends Activity {
 			this.items = items;
 			this.inflater = (LayoutInflater) context
 					.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+		}
+		
+		public void addItems(List<Book> books){
+			this.items.addAll(books);
 		}
 
 		@Override
@@ -327,5 +366,17 @@ public class BooksGotenListViewActivity extends Activity {
 		private void cacheImage(String url, Drawable image) {
 			cache.put(url, image);
 		}
+	}
+
+
+
+
+	public void onClick(View v) {
+		if(v == nextButton){
+			offset++;
+			BooksRequestTask task = new BooksRequestTask(this, booksListView);
+			task.execute(String.valueOf(offset)); 
+		}
+		
 	}
 }

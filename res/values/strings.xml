@@ -2,4 +2,5 @@
 <resources>
     
     <string name="app_name">BooksGotenApp</string>
+<string name="next_button">さらに読み込む</string>
 </resources>
