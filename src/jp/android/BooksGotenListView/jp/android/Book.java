@@ -41,4 +41,7 @@ public class Book implements Serializable {
 	public boolean lending;
 	public Date updated;
 	public Date created;
+	
+	//次へボタンとして使用されているかどうか
+	public boolean isNextButton = false;
 }

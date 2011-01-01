@@ -6,6 +6,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -34,10 +35,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -48,22 +47,19 @@ import android.widget.Toast;
  * @author you
  *
  */
-public class BooksGotenListViewActivity extends Activity implements OnClickListener {
+public class BooksGotenListViewActivity extends Activity {
 	
-	static final int ITEMS_PER_PAGE = 3;
+	static final int ITEMS_PER_PAGE = 10;
 	ListView booksListView;
-	Button nextButton;
 	int offset = 0;
 	BooksAdaptor adaptor;
+	BooksAdaptor viewAdaptor;
 	
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
-		
-		nextButton = (Button) findViewById(R.id.NextButton);
-		nextButton.setOnClickListener(this);
 		
 		booksListView = (ListView) findViewById(R.id.BooksListView);
 		
@@ -75,9 +71,16 @@ public class BooksGotenListViewActivity extends Activity implements OnClickListe
 		        //Toast.makeText(BooksGotenListViewActivity.this, position + "クリック", 0).show();
 		        Book book = (Book) listView.getItemAtPosition(position);
 		        
-		        Intent intent = new Intent(getApplicationContext(), BookDetailActivity.class);
-		        intent.putExtra("book", book);
-		        startActivity(intent);
+		        
+		        if(book.isNextButton){
+		        	offset++;
+		    		BooksRequestTask task = new BooksRequestTask(BooksGotenListViewActivity.this, booksListView);
+		    		task.execute(String.valueOf(offset)); 
+		        }else{
+			        Intent intent = new Intent(getApplicationContext(), BookDetailActivity.class);
+			        intent.putExtra("book", book);
+			        startActivity(intent);
+		        }
 		    }
 
 		});
@@ -124,7 +127,6 @@ public class BooksGotenListViewActivity extends Activity implements OnClickListe
 	
 	public class BooksRequestTask extends AsyncTask<String, Integer, BooksData> {
 
-		int offset = 0;
 		ListView booksListView;
 		Activity activity;
 		ProgressDialog progressDialog;
@@ -132,6 +134,7 @@ public class BooksGotenListViewActivity extends Activity implements OnClickListe
 		public BooksRequestTask(Activity activity, ListView booksListView) {
 			this.activity = activity;
 			this.booksListView = booksListView;
+			viewAdaptor = new BooksAdaptor(activity, R.layout.book_row, new ArrayList<Book>());
 		}
 		
 		@Override
@@ -161,7 +164,7 @@ public class BooksGotenListViewActivity extends Activity implements OnClickListe
 		@Override
 		protected void onPostExecute(BooksData booksData) {
 			progressDialog.dismiss(); //プログレスバー消す
-			Toast.makeText(activity, "書籍データ取得完了", 1).show();
+			Toast.makeText(activity, "書籍データ取得完了", Toast.LENGTH_SHORT).show();
 			
 			
 			if(offset > 0 && adaptor != null){
@@ -171,13 +174,23 @@ public class BooksGotenListViewActivity extends Activity implements OnClickListe
 				// アダプターを設定します
 				adaptor = new BooksAdaptor(activity, R.layout.book_row, booksData.books);
 			}
-			booksListView.setAdapter(adaptor);
+			viewAdaptor.clear();
+			viewAdaptor.addItems(adaptor.items);
 			
 			int offset_count = booksData.offset_count;
 			int total_count = booksData.total_count;
-			if(offset_count + ITEMS_PER_PAGE >= total_count) {
-				nextButton.setEnabled(false);
+			if(offset_count + ITEMS_PER_PAGE < total_count) {
+				//未取得の次のアイテムがある
+				Book nextBooks = new Book();
+				nextBooks.title = "次の本達";
+				nextBooks.author = "";
+				nextBooks.publisher = "";
+				nextBooks.isNextButton = true;
+				viewAdaptor.add(nextBooks);
 			}
+			booksListView.setAdapter(viewAdaptor);
+			//offset分スクロール
+			booksListView.setSelectionFromTop(offset_count, 0);
 		}
 		
 		/**
@@ -319,12 +332,17 @@ public class BooksGotenListViewActivity extends Activity implements OnClickListe
 			
 			TextView bookTitle = (TextView)v.findViewById(R.id.BookTitleView);
 			bookTitle.setText(book.title);
-			bookTitle.setText(bookTitle.getText() + "\n\n" + book.author + "\n" + book.publisher);
-			
+
 			ImageView bookImage = (ImageView)v.findViewById(R.id.BookImageView);
-			Drawable image = ImageOperations(context, book.image_url);
-			bookImage.setImageDrawable(image);
-			
+
+			if(book.isNextButton) {
+	            bookImage.setVisibility(View.GONE);
+			}else{
+				bookTitle.setText(bookTitle.getText() + "\n\n" + book.author + "\n" + book.publisher);
+
+				Drawable image = ImageOperations(context, book.image_url);
+				bookImage.setImageDrawable(image);
+			}
 
 			return v;
 		}
@@ -369,14 +387,4 @@ public class BooksGotenListViewActivity extends Activity implements OnClickListe
 	}
 
 
-
-
-	public void onClick(View v) {
-		if(v == nextButton){
-			offset++;
-			BooksRequestTask task = new BooksRequestTask(this, booksListView);
-			task.execute(String.valueOf(offset)); 
-		}
-		
-	}
 }

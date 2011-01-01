@@ -7,6 +7,4 @@
 
 <ListView android:id="@+id/BooksListView" android:layout_width="wrap_content" android:layout_height="wrap_content"></ListView>
 
-<Button android:text="@string/next_button" android:id="@+id/NextButton" android:layout_width="fill_parent" android:layout_height="wrap_content"></Button>
-
 </LinearLayout>
