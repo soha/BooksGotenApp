@@ -49,11 +49,12 @@ import android.widget.Toast;
  */
 public class BooksGotenListViewActivity extends Activity {
 	
-	static final int ITEMS_PER_PAGE = 10;
+	static final int ITEMS_PER_PAGE = 3;
 	ListView booksListView;
 	int offset = 0;
 	BooksAdaptor adaptor;
 	BooksAdaptor viewAdaptor;
+	HashMap<String,Drawable> cache = new HashMap<String,Drawable>();
 	
 	/** Called when the activity is first created. */
 	@Override
@@ -305,7 +306,6 @@ public class BooksGotenListViewActivity extends Activity {
 		private List<Book> items;
 		private LayoutInflater inflater;
 		Context context;
-		private HashMap<String,Drawable> cache = new HashMap<String,Drawable>();
 
 		public BooksAdaptor(Context context, int resource, List<Book> items) {
 			super(context, resource, items);
@@ -342,6 +342,7 @@ public class BooksGotenListViewActivity extends Activity {
 
 				Drawable image = ImageOperations(context, book.image_url);
 				bookImage.setImageDrawable(image);
+				bookImage.setVisibility(View.VISIBLE);
 			}
 
 			return v;
@@ -376,7 +377,8 @@ public class BooksGotenListViewActivity extends Activity {
 		private Drawable getCacheImage(String url) {
 			if (cache.containsKey(url)) {  
 	            Log.d("cache", "cache hit!");  
-	            return cache.get(url);  
+	            return cache.get(url);
+	            //return null;
 	        }  
 	        return null;  
 		}
